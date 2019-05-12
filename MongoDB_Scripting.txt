@@ -1,0 +1,43 @@
+#Extract eventType=Size from the complete events JSON dump 
+ db.log.aggregate([
+  { $match : {"_source.eventType":"size"} },
+  { $out : "sizewidget" }
+]);
+
+
+#Export & Import documents (MongoDB collection)
+mongoimport --db events --collection log --file /home/akshu/Desktop/deliverables/data_science_test_events.json 
+mongoexport --db events --collection sizewidget --out size.json
+
+#Extract documents for 1st Feb to 28th Feb 2019
+> typeof db.sizewidget.findOne()._source.timestamp;
+string
+
+# Filter documents from MongoDB collection
+> db.trans.aggregate( [ {    "$addFields": {       StringToDate: {          $dateFromString: {             dateString: '$_source.timestamp'          }       }    } },     { "$match": { "StringToDate": { "$gte": ISODate("2019-02-01"), "$lt": ISODate("2019-03-01") }}},     { "$out": "transactions" }]);
+> db.sizewidget.aggregate( [ {
+...    $project: {
+...       StringToDate: {
+...          $dateFromString: {
+...             dateString: '$_source.timestamp'
+...          }
+...       }
+...    }
+... },
+    { "$match": { "StringToDate": { "$gte": ISODate("2019-02-01"), "$lt": ISODate("2019-03-01") }}},
+    { "$count": "count" }]);
+
+
+# Check for the documents count after extraction
+db.sizewidget.find({
+  "$expr": {
+    "$gte": [{ "_source.timestamp": { "$dateFromString": { "dateString": "$_source.timestamp" }}}, start.toDate() ],
+    "$lt": [{ "_source.timestamp": { "$dateFromString": { "dateString": "$_source.timestamp" }}}, end.toDate() ]
+  }
+}).count();
+
+> db.data.find().count()
+20894
+
+
+
